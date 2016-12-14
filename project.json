@@ -1,5 +1,5 @@
 {
-  "version": "1.1.0-*",
+  "version": "1.0.0-*",
   "authors": [ "Chris Richards" ],
   "copyright": "Copyright Chris Richards",
   "description": "Command line application to bulk copy from DBF files to MS SqlServer",
