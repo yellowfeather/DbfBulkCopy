@@ -1,0 +1,18 @@
+version: '{build}'
+pull_requests:
+  do_not_increment_build_number: true
+branches:
+  only:
+  - master
+nuget:
+  disable_publish_on_pr: true
+build_script:
+- ps: .\Build.ps1
+test: off
+artifacts:
+- path: .\artifacts\win10-x64\*
+  name: win10-x64
+- path: .\artifacts\osx.10.10-x64\*
+  name: osx.10.10-x64
+- path: .\artifacts\ubuntu.14.04-x64\*
+  name: ubuntu.14.04-x64
