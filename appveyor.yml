@@ -22,7 +22,7 @@ deploy:
   provider: GitHub
   auth_token:
     secure: zIuIoM6+3Bc95kSVegG4Lwls01vu+J5OlwOFG2CSaB2YLNdYsTtNqJVnWrnIXMBl
-  artifact: .\artifacts\win10-x64.zip,.\artifacts\osx.10.10-x64.zip,.\artifacts\ubuntu.14.04-x64.zip
+  artifact: artifacts\win10-x64.zip,artifacts\osx.10.10-x64.zip,artifacts\ubuntu.14.04-x64.zip
   draft: false
   prerelease: false
   on:
