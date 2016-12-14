@@ -4,6 +4,7 @@ Command line application to bulk copy from DBF files to MS SqlServer
 
 Usage:
 
+```
 DbfBulkCopy 1.0.0
 Copyright (C) 1 author
 
@@ -26,3 +27,4 @@ Copyright (C) 1 author
   --help               Display this help screen.
 
   --version            Display version information.
+```
