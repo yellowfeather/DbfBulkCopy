@@ -1,5 +1,7 @@
 # DbfBulkCopy
 
+[![Build status](https://ci.appveyor.com/api/projects/status/1se8yd6ra2m71nlk?svg=true)](https://ci.appveyor.com/project/chrisrichards/dbfbulkcopy)
+
 Command line application to bulk copy from DBF files to MS SqlServer
 
 Usage:
