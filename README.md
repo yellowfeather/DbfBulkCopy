@@ -6,7 +6,7 @@ Usage:
 
 ```
 DbfBulkCopy 1.0.0
-Copyright (C) 1 author
+Copyright Chris Richards
 
   --server             Required. The database server
 
