@@ -1,5 +1,4 @@
 using CommandLine;
-using CommandLine.Text;
 
 public class Options
 {
@@ -26,4 +25,7 @@ public class Options
 
   [Option(Default=false, HelpText="Whether to truncate the table before copying")]
   public bool Truncate { get; set; }
+
+  [Option(Default=false, HelpText="Whether to skip deleted records")]
+  public bool SkipDeletedRecords { get; set; }
 }

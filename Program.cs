@@ -3,6 +3,7 @@ using CommandLine.Text;
 using System;
 using System.Data.SqlClient;
 using System.Diagnostics;
+using DbfDataReader;
 
 namespace DbfBulkCopy
 {
@@ -31,6 +32,7 @@ namespace DbfBulkCopy
             Console.WriteLine($"  BulkCopyTimeout: {options.BulkCopyTimeout}");
             Console.WriteLine($"  UserID: {options.UserId}");
             Console.WriteLine($"  Truncate: {options.Truncate}");
+            Console.WriteLine($"  SkipDeletedRecords: {options.SkipDeletedRecords}");
             Console.WriteLine();
 
             var connectionString = BuildConnectionString(options);
@@ -76,7 +78,11 @@ namespace DbfBulkCopy
 
             var rowsCopied = 0L;
             var dbfRecordCount = 0L;
-            using (var dbfDataReader = new DbfDataReader.DbfDataReader(options.Dbf))
+            var dbfDataReaderOptions = new DbfDataReaderOptions
+            {
+                SkipDeletedRecords = options.SkipDeletedRecords
+            };
+            using (var dbfDataReader = new DbfDataReader.DbfDataReader(options.Dbf, dbfDataReaderOptions))
             {
                 dbfRecordCount = dbfDataReader.DbfTable.Header.RecordCount;
 
