@@ -15,7 +15,7 @@
     <RepositoryUrl>git://github.com/yellowfeather/DbfBulkCopy</RepositoryUrl>
     <RuntimeIdentifiers>win10-x64;osx.10.10-x64;ubuntu.14.04-x64</RuntimeIdentifiers>
     <StartupObject>DbfBulkCopy.Program</StartupObject>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
