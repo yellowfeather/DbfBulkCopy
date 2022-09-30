@@ -22,5 +22,5 @@ Copyright Chris Richards
   --version               Display version information.
   --userid                The UserID used to connect to the database server
   --password              The password used to connect to the database server
-  
+  --createtable           Create destination table. Drop it first if it exists 
 ```

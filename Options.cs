@@ -31,4 +31,7 @@ public class Options
 
   [Option(Default=false, HelpText="Whether to skip deleted records")]
   public bool SkipDeletedRecords { get; set; }
+  
+  [Option(Default = false, HelpText = "Create destination table. Drop it first if it exists ")]
+  public bool CreateTable { get; set; }
 }

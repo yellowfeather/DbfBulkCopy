@@ -16,7 +16,7 @@ namespace DbfBulkCopy
         public static int Main(string[] args)
         {
             Console.WriteLine($"");
-            
+
             return Parser.Default.ParseArguments<Options>(args)
                 .MapResult(
                 options => RunAndReturnExitCode(options),
@@ -81,36 +81,44 @@ namespace DbfBulkCopy
 
         private static void CreateTable(DbfDataReader.DbfDataReader dbfdr, SqlConnection connection, Options options)
         {
-            StringBuilder query = new StringBuilder();
-            query.Append($"IF OBJECT_ID('{options.Table}', 'U') IS NOT NULL DROP TABLE {options.Table}; ");
-            query.Append("CREATE TABLE ");
-            query.Append(options.Table);
-            query.Append(" ( ");
-
-            var cs = dbfdr.GetColumnSchema();
-            
-            for (int i =0;i<cs.Count;i++)
+            try
             {
-                var col = cs[i];
-                query.Append(col.ColumnName);
-                query.Append(" ");
-                query.Append(ConvertToSQLType(col));
-                if (i < cs.Count - 1)
-                    query.Append(", ");
+                StringBuilder query = new StringBuilder();
+              
+                query.Append($"IF OBJECT_ID('{options.Table}', 'U') IS NOT NULL DROP TABLE {options.Table}; ");
+                query.Append("CREATE TABLE ");
+                query.Append(options.Table);
+                query.Append(" ( ");
+
+                var cs = dbfdr.GetColumnSchema();
+
+                for (int i = 0; i < cs.Count; i++)
+                {
+                    var col = cs[i];
+                    query.Append(col.ColumnName);
+                    query.Append(" ");
+                    query.Append(ConvertToSQLType(col));
+                    if (i < cs.Count - 1)
+                        query.Append(", ");
+                }
+                query.Append(")");
+                SqlCommand sqlQuery = new SqlCommand(query.ToString(), connection);
+                sqlQuery.ExecuteNonQuery();
             }
-            query.Append(")");
-            SqlCommand sqlQuery = new SqlCommand(query.ToString(), connection);
-            sqlQuery.ExecuteNonQuery();
+            catch(Exception ex)
+            {
+                Console.WriteLine($"Error creating table {ex.Message}");  
+            }
         }
-        
+
         private static string ConvertToSQLType(DbColumn col)
         {
             DbfColumn dcol = col as DbfColumn;
             switch (dcol.DataType.Name)
             {
                 case "String":
-                        return $"varchar(max)";
-                       // return $"char({dcol.Length})";  this yields an error
+                    return $"varchar(max)";
+                // return $"char({dcol.Length})";  this yields an error
                 case "Int64":
                     return "bigint";
                 case "Int32":
@@ -122,7 +130,7 @@ namespace DbfBulkCopy
                 case "Decimal":
                     return $"Decimal({dcol.Length},{dcol.DecimalCount})";
                 default:
-                    return "x"+col.DataType.Name;
+                    return col.DataType.Name;
             }
 
         }
@@ -148,8 +156,10 @@ namespace DbfBulkCopy
                 {
                     bulkCopy.BulkCopyTimeout = options.BulkCopyTimeout;
                     bulkCopy.DestinationTableName = options.Table;
-                    CreateTable(dbfDataReader, connection, options);
-
+                    if (options.CreateTable)
+                    {
+                        CreateTable(dbfDataReader, connection, options);
+                    }
                     try
                     {
                         bulkCopy.WriteToServer(dbfDataReader);
@@ -163,7 +173,7 @@ namespace DbfBulkCopy
             }
 
             stopwatch.Stop();
-            Console.WriteLine($"Bulk copy completed in {GetElapsedTime(stopwatch)}s");            
+            Console.WriteLine($"Bulk copy completed in {GetElapsedTime(stopwatch)}s");
             Console.WriteLine($"Copied {rowsCopied} of {dbfRecordCount} rows");
         }
 
