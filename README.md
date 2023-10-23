@@ -12,13 +12,15 @@ Copyright Chris Richards
 
   --server                Required. The database server
   --database              Required. The name of the database
-  --userid                Required. The UserID used to connect to the database server
-  --password              Required. The password used to connect to the database server
   --dbf                   Required. Path to the DBF file to import
   --table                 Required. The name of the database table to import into
+  --UseSSPI               (Default: true) Use Integrated Authentication to connect to the database server 
   --bulkcopytimeout       (Default: 30) The connection timeout used in the bulk copy operation
   --truncate              (Default: false) Whether to truncate the table before copying
   --skipdeletedrecords    (Default: false) Whether to skip deleted records
   --help                  Display this help screen.
   --version               Display version information.
+  --userid                The UserID used to connect to the database server
+  --password              The password used to connect to the database server
+  --createtable           Create destination table. Drop it first if it exists 
 ```
