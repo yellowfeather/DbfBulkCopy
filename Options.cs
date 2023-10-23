@@ -8,10 +8,13 @@ public class Options
   [Option(Required=true, HelpText="The name of the database")]
   public string Database { get; set; }
 
-  [Option(Required=true, HelpText="The UserID used to connect to the database server")]
+  [Option(Default=true, Required = false, HelpText = "Use user's credentials to connect to database Server")]
+  public bool UseSSPI { get; set; }
+
+  [Option(Required=false, HelpText="The UserID used to connect to the database server")]
   public string UserId { get; set; }
 
-  [Option(Required=true, HelpText="The password used to connect to the database server")]
+  [Option(Required=false, HelpText="The password used to connect to the database server")]
   public string Password { get; set; }
 
   [Option(Required=true, HelpText="Path to the DBF file to import")]
@@ -28,4 +31,7 @@ public class Options
 
   [Option(Default=false, HelpText="Whether to skip deleted records")]
   public bool SkipDeletedRecords { get; set; }
+  
+  [Option(Default = false, HelpText = "Create destination table. Drop it first if it exists ")]
+  public bool CreateTable { get; set; }
 }
