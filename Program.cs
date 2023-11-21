@@ -1,12 +1,13 @@
 using CommandLine;
 using CommandLine.Text;
 using System;
+using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Diagnostics;
 using DbfDataReader;
 using System.Data.Common;
 using System.Text;
-using System.ComponentModel.DataAnnotations;
+using System.Data;
 using System.Linq;
 
 namespace DbfBulkCopy
@@ -91,6 +92,11 @@ namespace DbfBulkCopy
                 query.Append(" ( ");
 
                 var cs = dbfdr.GetColumnSchema();
+                
+                if (!cs.Any(col => string.Equals(col.ColumnName.ToUpperInvariant(), "ID")))
+                {
+                    query.Append("ID numeric(10,0) PRIMARY KEY IDENTITY(1,1) NOT NULL, ");
+                }
 
                 for (int i = 0; i < cs.Count; i++)
                 {
@@ -111,23 +117,31 @@ namespace DbfBulkCopy
             }
         }
 
+        private static string GetVarCharLength(DbfColumn dcol)
+        {
+            if (dcol.ColumnType == DbfColumnType.Memo)
+            {
+                return "max";
+            }
+            return dcol.Length != 0 ? (dcol.Length).ToString() : "max";
+        }
+        
         private static string ConvertToSQLType(DbColumn col)
         {
             DbfColumn dcol = col as DbfColumn;
             switch (dcol.DataType.Name)
             {
                 case "String":
-                    return $"varchar(max)";
-                // return $"char({dcol.Length})";  this yields an error
+                    return $"varchar({GetVarCharLength(dcol)})";
                 case "Int64":
-                    return "bigint";
+                    return "bigint DEFAULT 0";
                 case "Int32":
-                    return "int";
+                    return "int DEFAULT 0";
                 case "Boolean":
-                    return "bit";
+                    return "bit NOT NULL DEFAULT 0";
                 case "DateTime":
                     return "Datetime";
-                case "Decimal":
+                case "Decimal DEFAULT 0":
                     return $"Decimal({dcol.Length},{dcol.DecimalCount})";
                 default:
                     return col.DataType.Name;
@@ -160,9 +174,10 @@ namespace DbfBulkCopy
                     {
                         CreateTable(dbfDataReader, connection, options);
                     }
+                    var dt = ValidateColumns(dbfDataReader);
                     try
                     {
-                        bulkCopy.WriteToServer(dbfDataReader);
+                        bulkCopy.WriteToServer(dt);
                         rowsCopied = bulkCopy.RowsCopied();
                     }
                     catch (Exception ex)
@@ -175,6 +190,128 @@ namespace DbfBulkCopy
             stopwatch.Stop();
             Console.WriteLine($"Bulk copy completed in {GetElapsedTime(stopwatch)}s");
             Console.WriteLine($"Copied {rowsCopied} of {dbfRecordCount} rows");
+        }
+
+        private static DataTable ValidateColumns(DbfDataReader.DbfDataReader dbfDataReader)
+        {
+            var IntColumns = new List<DataColumn>();
+            var DecimalColumns = new List<DataColumn>();
+            var BoolColumns = new List<DataColumn>();
+            var DateColumns = new List<DataColumn>();
+
+            // Woraround to create DataTable from DataReader,
+            // because dt.Fill(dbfDataReader) calls not implemented function DbfDataReader.GetValues()
+            var dt = ConvertToDatatable(dbfDataReader);
+
+            for (var i = 0; i < dt.Columns.Count; i++)
+            {
+                var col = dt.Columns[i];
+                switch (col.DataType.Name)
+                {
+                    case "DateTime":
+                        DateColumns.Add(col);
+                        break;
+                    case "Boolean":
+                        BoolColumns.Add(col);
+                        break;
+                    case "Int32":
+                    case "Int64":
+                    case "Decimal":
+                        BoolColumns.Add(col);
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            foreach (DataRow dr in dt.Rows)
+            {
+                //--- convert int values
+                foreach (DataColumn IntCol in IntColumns)
+                {
+                    if(string.IsNullOrEmpty(dr[IntCol].ToString()))
+                        dr[IntCol] = DBNull.Value;
+                    else 
+                       dr[IntCol] = dr[IntCol];
+                }
+                //--- convert decimal values
+                foreach (DataColumn DecCol in DecimalColumns)
+                {
+                    if(string.IsNullOrEmpty(dr[DecCol].ToString()))
+                        dr[DecCol] = DBNull.Value; //--- this had to be set to null, not empty
+                    else
+                        dr[DecCol] = dr[DecCol];
+                }
+                //--- convert bool values
+                foreach (DataColumn BoolCol in BoolColumns)
+                {
+                    if(string.IsNullOrEmpty(dr[BoolCol].ToString()))
+                        dr[BoolCol] = 0;
+                    else
+                        dr[BoolCol] = dr[BoolCol];
+                }
+                //--- convert date values
+                foreach (DataColumn DateCol in DateColumns)
+                {
+                    if(string.IsNullOrEmpty(dr[DateCol].ToString()))
+                        dr[DateCol] = DBNull.Value;
+                    else 
+                        dr[DateCol] = SanitizeDateTime(dr[DateCol].ToString());
+                }
+            }
+            return dt;
+        }
+
+        private static DataTable ConvertToDatatable(DbfDataReader.DbfDataReader dbfDataReader)
+        {
+            var cols = dbfDataReader.DbfTable.Columns;
+            DataTable table = new DataTable();
+            var cs = dbfDataReader.GetColumnSchema();
+            var addIdCol = !cs.Any(col => string.Equals(col.ColumnName.ToUpperInvariant(), "ID"));
+            if (addIdCol)
+            {
+                table.Columns.Add("ID");
+            }
+
+            for (int i = 0; i < cols.Count; i++)
+            {
+                var col = cols[i];
+                table.Columns.Add(col.ColumnName, col.DataType);
+            }
+
+            var colsCount = addIdCol ? cols.Count + 1 : cols.Count;
+            object[] values = new object[colsCount];
+            while (dbfDataReader.Read())
+            {
+                var startIdx = addIdCol ? 1 : 0;
+                for (int i = startIdx; i < values.Length; i++)
+                {
+                    values[i] = dbfDataReader.GetValue(i - startIdx);
+                    if (string.Equals(cs[i - startIdx].DataType.Name, "String"))
+                    {
+                        // validate string columns
+                        var length = (cs[i - startIdx] as DbfColumn).Length;
+                        if (values[i] != null && !string.IsNullOrEmpty(values[i].ToString()) && values[i].ToString().Length > length)
+                        {
+                            // truncate string
+                            values[i] = values[i].ToString()[..length].TrimEnd();
+                        }
+                    }
+                }
+                table.Rows.Add(values);
+            }
+            return table;
+        }
+
+        private static object SanitizeDateTime(string value)
+        {
+            DateTime temp;
+            if(DateTime.TryParse(value, out temp))
+            {
+                var minDateTime = new DateTime(1753, 1, 1, 12, 0, 0);
+                return temp < minDateTime ? minDateTime : temp;
+            }
+            return DBNull.Value;
         }
 
         private static string GetElapsedTime(Stopwatch stopwatch)
